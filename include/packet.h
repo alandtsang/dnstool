@@ -2,6 +2,7 @@
 #define INCLUDE_PACKET_H_
 
 #include <cstdint>
+#include <string>
 
 #include "utils.h"
 
@@ -47,16 +48,20 @@ public:
 	~Packet() {}
 
 	void Init();
-	void Set(const char* dstaddr, const char* port);
-	void Generate();
+	void Set(const char* dstaddr, uint16_t port);
+	void Generate(std::string& domain);
 
 	char buf[256];
 	uint16_t buf_len;
 
 private:
+	void code_domain(std::string& domain);
+
 	struct ipv4_hdr*	iphdr_;
 	struct udp_hdr*		udp;
 	struct dnshdr*		dns;
+
+	uint8_t query_len;
 };
 
 

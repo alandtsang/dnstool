@@ -13,7 +13,7 @@ public:
 	Socket() {}
 	~Socket() {}
 
-	void Set(const char* ip, const char* port);
+	void Set(const char* ip, uint16_t port);
 	void Send(const void* buf, uint16_t len);
 
 private:

@@ -7,6 +7,7 @@
 
 #include "packet.h"
 
+const int dnshdr_off = 12;
 
 uint16_t ip_sum(const uint16_t *hdr, int hdr_len)
 {
@@ -47,48 +48,55 @@ void Packet::Init() {
 	dns->arcount = 0;
 }
 
-void Packet::Set(const char* dstaddr, const char* port) {
+void Packet::Set(const char* dstaddr, uint16_t port) {
 	inet_aton(dstaddr, (struct in_addr *)&iphdr_->dst_addr);
-	udp->dst_port = RTE_CPU_TO_BE_16(atoi(port));
+	udp->dst_port = RTE_CPU_TO_BE_16(port);
 }
 
-void Packet::Generate() {
+void Packet::code_domain(std::string& domain)
+{
+    int start(0); // indexes
+    std::size_t end;
+	char *buffer = buf + 40;
+	char *buffer2 = buf + 40;
+
+    while ((end = domain.find('.', start)) != std::string::npos) {
+        *buffer++ = end - start; // label length octet
+        for (uint16_t i=start; i<end; i++) {
+            *buffer++ = domain[i]; // label octets
+        }
+        start = end + 1; // Skip '.'
+    }
+
+    *buffer++ = domain.size() - start; // last label length octet
+    for (uint16_t i=start; i<domain.size(); i++) {
+        *buffer++ = domain[i]; // last label octets
+    }
+
+    *buffer++ = 0;
+	query_len = buffer - buffer2 + 4;  // query name + type + class
+}
+
+void Packet::Generate(std::string& domain) {
 	dns->id = RTE_CPU_TO_BE_16(rand() % 65535);
-	int namelen=rand()%6+2;
-	char p;
-	p=(char)namelen;
 
-	memcpy(buf+40,&p,1);
-	int i=0;
-	char *pi=buf+41;
-	for(i=0;i<namelen;i++) {
-		int a=rand()%26+97;
-		char ca=(char) a;
-		memcpy(pi,&ca,1);
-		pi++;
-	}
+	/* query section */
+	code_domain(domain);
 
-	const char *domain[]={"com","io","cn"};
-	int dii=rand()%3;
-	int domlen=strlen(domain[dii]);
-	char cdomlen=(char)domlen;
-	memcpy(buf+41+namelen,&cdomlen,1);
-	memcpy(buf+42+namelen,domain[dii],domlen);
-	int zero=0;
-	char czero=(char)zero;
-	memcpy(buf+42+namelen+domlen,&czero,1);
-	int type_class=htonl(0x00010001);
-	memcpy(buf+43+namelen+domlen,&type_class,4);
+	/* type and class */
+	buf[40 + query_len - 4] = 0x00;
+	buf[40 + query_len - 3] = 0x01;
+	buf[40 + query_len - 2] = 0x00;
+	buf[40 + query_len - 1] = 0x01;
 
-	udp->dgram_len = RTE_CPU_TO_BE_16(27+namelen+domlen);
+	udp->dgram_len = RTE_CPU_TO_BE_16(8 + dnshdr_off + query_len);
 	udp->src_port = RTE_CPU_TO_BE_16(rand()%65535+1);
 
-	buf_len = 47+namelen+domlen;
+	buf_len = 40 + query_len;
 	iphdr_->total_length = RTE_CPU_TO_BE_16(buf_len);
 	iphdr_->src_addr = htonl((rand()%3758096383));
 	//iphdr_->src_addr=htonl(3232246921);
 	iphdr_->time_to_live=IP_DEFTTL;
-	//iphdr_->hdr_checksum = ip_sum((uint16_t *)iphdr_, sizeof(*iphdr_));
 
 	return;
 }

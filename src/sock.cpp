@@ -8,9 +8,9 @@
 #include "sock.h"
 
 
-void Socket::Set(const char* ip, const char* port) {
+void Socket::Set(const char* ip, uint16_t port) {
 	addr_.sin_family = AF_INET;
-    addr_.sin_port = RTE_CPU_TO_BE_16(atoi(port));
+    addr_.sin_port = RTE_CPU_TO_BE_16(port);
     addr_.sin_addr.s_addr = inet_addr(ip);
 
 	sockfd_ = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
