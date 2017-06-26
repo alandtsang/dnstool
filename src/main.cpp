@@ -26,12 +26,22 @@ struct server {
 public:
 	server() {
 		ip = NULL;
-		port = 0;
+		port = 53;
 	}
 
 	char* ip;
 	uint16_t port;
 };
+
+/* Display usage instructions */
+static void print_usage(const char *prgname)
+{
+    printf("Usage: %s -s ip -p port -d datafile\n"
+           "    -s ip: the server to query\n"
+           "    -p port: the port on which to query the server\n"
+           "    -d datafile: the input data file\n",
+                prgname);
+}
 
 int main(int argc, char *argv[])
 {
@@ -42,12 +52,13 @@ int main(int argc, char *argv[])
 	Data data;
 
 	std::string domain;
+    const char* prgname = argv[0];
 
 	int howmany = 0;
 	server s;
 	int c;
 
-	while ((c = getopt(argc, argv, "s:p:d:n:")) != -1) {
+	while ((c = getopt(argc, argv, "s:p:d:n:h")) != -1) {
 		switch (c) {
 			case 's':
 				s.ip = optarg;
@@ -60,8 +71,10 @@ int main(int argc, char *argv[])
 				break;
 			case 'n':
 				break;
+            case 'h':
 			default:
-				break;
+				print_usage(prgname);
+                exit(EXIT_FAILURE);
 		}
 	}
 
