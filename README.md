@@ -23,7 +23,11 @@ Example:
 $ cat test.txt
 www.google.com.hk
 
-$ sudo ./dnstool -s 192.168.44.128 -l 192.168.44.137 -d test.txt
+$ sudo ./dnstool -s 192.168.44.128 -d test.txt -n 1000000 -l 192.168.44.137
+ip=192.168.44.128, port=53
+Total = 1000000
+Cost  = 10.6559 seconds
+Rate  = 93844.7 pps
 ```
 
 Get Help

@@ -5,7 +5,7 @@
 #include <netinet/ip.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
 
@@ -22,8 +22,9 @@
 
 using namespace std;
 
-static uint32_t start;
-static float delta;
+struct timeval start_time, end_time;
+static uint32_t delta;
+static float time_use;
 static float rate;
 static uint64_t howmany;
 static int counter;
@@ -42,12 +43,15 @@ public:
 static void signal_handler(int signum)
 {
     if (signum == SIGKILL || signum == SIGINT) {
-        delta = time(NULL) - start;
-        rate = howmany/delta;
+        gettimeofday(&end_time, NULL);
+        delta = (end_time.tv_sec - start_time.tv_sec) * 1000000 +
+            (end_time.tv_usec - start_time.tv_usec);
+        time_use = delta / 1000000.0;
+        rate = howmany / time_use;
 
-        std::cout << "Total: " << howmany << std::endl;
-        std::cout << "Delta = " << delta << " seconds" << std::endl;
-        std::cout << "Rate = " << rate << " pps" << std::endl;
+        std::cout << "Total = " << howmany << std::endl;
+        std::cout << "Cost  = " << time_use << " seconds" << std::endl;
+        std::cout << "Rate  = " << rate << " pps" << std::endl;
 
         exit(1);
     }
@@ -120,7 +124,7 @@ int main(int argc, char *argv[])
     char* sss = data.buffer;
     int len = 0;
 
-	uint32_t start = time(NULL);
+	gettimeofday(&start_time, NULL);
 	if (counts) {
         while (1) {
             if (counter >= counts) break;
@@ -165,12 +169,15 @@ int main(int argc, char *argv[])
 	//duration<float> delta = clock::now() - start;
     //float deltaf = delta.count();
     //auto rate = howmany/deltaf;
-    float delta = time(NULL) - start;
-	float rate = howmany/delta;
+    gettimeofday(&end_time, NULL);
+    delta = (end_time.tv_sec - start_time.tv_sec) * 1000000 +
+            (end_time.tv_usec - start_time.tv_usec);
+    time_use = delta / 1000000.0;
+    rate = howmany / time_use;
 
-    std::cout << "Total: " << howmany << std::endl;
-    std::cout << "Delta = " << delta << " seconds" << std::endl;
-    std::cout << "Rate = " << rate << " pps" << std::endl;
+    std::cout << "Total = " << howmany << std::endl;
+    std::cout << "Cost  = " << time_use << " seconds" << std::endl;
+    std::cout << "Rate  = " << rate << " pps" << std::endl;
 
     return 0;
 }
