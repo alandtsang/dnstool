@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <iostream>
 //#include <atomic>
@@ -21,6 +22,11 @@
 
 using namespace std;
 
+static uint32_t start;
+static float delta;
+static float rate;
+static uint64_t howmany;
+static int counter;
 
 struct server {
 public:
@@ -33,18 +39,37 @@ public:
 	uint16_t port;
 };
 
+static void signal_handler(int signum)
+{
+    if (signum == SIGKILL || signum == SIGINT) {
+        delta = time(NULL) - start;
+        rate = howmany/delta;
+
+        std::cout << "Total: " << howmany << std::endl;
+        std::cout << "Delta = " << delta << " seconds" << std::endl;
+        std::cout << "Rate = " << rate << " pps" << std::endl;
+
+        exit(1);
+    }
+}
+
 /* Display usage instructions */
 static void print_usage(const char *prgname)
 {
-    printf("Usage: %s -s ip -p port -d datafile\n"
+    printf("Usage: %s -s ip [-p port] [-n counts] -l local_ip -d datafile\n"
            "    -s ip: the server to query\n"
            "    -p port: the port on which to query the server\n"
+           "    -l ip: the local address from which to send queries\n"
+		   "    -n counts: repeatedly the datafile counts times\n"
            "    -d datafile: the input data file\n",
                 prgname);
 }
 
 int main(int argc, char *argv[])
 {
+    signal(SIGINT, signal_handler);
+    signal(SIGKILL, signal_handler);
+
 	//using namespace std::chrono;
     //using clock=steady_clock;
 	Socket socket;
@@ -54,11 +79,11 @@ int main(int argc, char *argv[])
 	std::string domain;
     const char* prgname = argv[0];
 
-	int howmany = 0;
+    int counts = 0;
 	server s;
 	int c;
 
-	while ((c = getopt(argc, argv, "s:p:d:n:h")) != -1) {
+	while ((c = getopt(argc, argv, "s:p:d:l:n:h")) != -1) {
 		switch (c) {
 			case 's':
 				s.ip = optarg;
@@ -69,8 +94,12 @@ int main(int argc, char *argv[])
 			case 'd':
 				data.filename = optarg;
 				break;
-			case 'n':
-				break;
+            case 'l':
+                pkt.sip = inet_addr(optarg);
+                break;
+            case 'n':
+                counts = atoi(optarg);
+                break;
             case 'h':
 			default:
 				print_usage(prgname);
@@ -86,11 +115,51 @@ int main(int argc, char *argv[])
 
 	data.Open();
 
+    char* p = NULL;
+    char* ss = data.buffer;
+    char* sss = data.buffer;
+    int len = 0;
+
 	uint32_t start = time(NULL);
-	while (getline(data.ifs, domain)) {
-		pkt.Generate(domain);
-		socket.Send(pkt.buf, pkt.buf_len);
-		howmany++;
+	if (counts) {
+        while (1) {
+            if (counter >= counts) break;
+
+            while (1) {
+                p = strchr(ss, '\n');
+                if (p != NULL) {
+                    len = p - ss;
+                    domain.assign(ss, len); 
+//std::cout << domain << "\n";
+                    pkt.Generate(domain);
+                    socket.Send(pkt.buf, pkt.buf_len);
+                    ss = p + 1;
+                    howmany++;
+                } else {
+                    break;
+                }
+            }
+
+            counter++;
+            ss = sss;
+        }
+    } else {
+        while (1) {
+            while (1) {
+                p = strchr(ss, '\n');
+                if (p != NULL) {
+                    len = p - ss;
+                    domain.assign(ss, len); 
+
+                    pkt.Generate(domain);
+                    socket.Send(pkt.buf, pkt.buf_len);
+                    ss = p + 1;
+                    howmany++;
+                }
+                if (*ss == '\0')
+                    ss = sss;
+            }
+        }
 	}
 
 	//duration<float> delta = clock::now() - start;

@@ -9,12 +9,21 @@ dns performance test tools.
 
 Usage
 =============
-Usage: sudo ./dnstool -s ip -p port -d datafile
+```
+Usage: sudo ./dnstool -s ip [-p port] [-n counts] -l local_ip -d datafile
     -s ip: the server to query
     -p port: the port on which to query the server
+    -l ip: the local address from which to send queries
+    -n counts: repeatedly the datafile counts times
     -d datafile: the input data file
 ```
-sudo ./dnstool -s 192.168.44.128 -p 53 -d test.txt
+
+Example:
+```
+$ cat test.txt
+www.google.com.hk
+
+$ sudo ./dnstool -s 192.168.44.128 -l 192.168.44.137 -d test.txt
 ```
 
 Get Help

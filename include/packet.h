@@ -53,6 +53,7 @@ public:
 
 	char buf[256];
 	uint16_t buf_len;
+    uint32_t sip;
 
 private:
 	void code_domain(std::string& domain);

@@ -10,12 +10,16 @@
 class Data {
 public:
 	Data() {}
-	~Data() { ifs.close(); }
+	~Data() { delete[] buffer; }
 
 	void Open();
 
 	char* filename;
 	std::ifstream ifs;
+    char* buffer;
+
+private:
+    int length_;
 };
 
 #endif

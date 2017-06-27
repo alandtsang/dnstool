@@ -94,8 +94,8 @@ void Packet::Generate(std::string& domain) {
 
 	buf_len = 40 + query_len;
 	iphdr_->total_length = RTE_CPU_TO_BE_16(buf_len);
-	iphdr_->src_addr = htonl((rand()%3758096383));
-	//iphdr_->src_addr=htonl(3232246921);
+	//iphdr_->src_addr = htonl((rand()%3758096383));
+    iphdr_->src_addr = sip;
 	iphdr_->time_to_live=IP_DEFTTL;
 
 	return;
